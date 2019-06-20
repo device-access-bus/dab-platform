@@ -1,0 +1,23 @@
+{
+  "name": "dab-platform",
+  "version": "1.0.0",
+  "description": "Example implementation of Device Access Bus Platform module",
+  "main": "platform-manager.js",
+  "scripts": {
+    "test": "exit 0",
+    "start": "node ./platform-manager"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/device-access-bus/dab-platform.git"
+  },
+  "author": "",
+  "license": "SEE LICENSE IN ./LICENSE",
+  "bugs": {
+    "url": "https://github.com/device-access-bus/dab-platform/issues"
+  },
+  "homepage": "https://github.com/device-access-bus/dab-platform#readme",
+  "dependencies": {
+    "mqtt": "^3.0.0"
+  }
+}
