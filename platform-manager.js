@@ -27,8 +27,7 @@ client.on('connect', () => {
     // subscribe to the desired topics
     client.subscribe([
         'platform/input/remote/#',
-        'platform/telemetry/monitor/start/+',
-        'platform/telemetry/monitor/stop/+',
+        'platform/telemetry/memory/monitor/#',
         'apps/+/status/lifecycle'
     ]);
 });
@@ -153,11 +152,11 @@ function onAppsAppidStatusLifecycle(topic, message) {
     console.log('Received status for ' + appId + ': pid = ' + appsPid[index]["pid"]);
 }
 
-function onPlatformTelemetryMonitorStart(topic, message) {
-    // Handler for platform/telemetry/monitor/start/<req_id>
+function onPlatformTelemetryMemoryMonitorStart(topic, message) {
+    // Handler for platform/telemetry/memory/monitor/start/<req_id>
     const topicParts = topic.split('/');
-    if (topicParts.length !== 5 ||
-        !topic.startsWith('platform/telemetry/monitor/start/')) {
+    if (topicParts.length !== 6 ||
+        !topic.startsWith('platform/telemetry/memory/monitor/start/')) {
         console.log('Invalid topic: ' + topic);
         return;
     }
@@ -180,11 +179,11 @@ function onPlatformTelemetryMonitorStart(topic, message) {
         }));
 }
 
-function onPlatformTelemetryMonitorStop(topic, message) {
-    // Handler for platform/telemetry/monitor/stop/<req_id>
+function onPlatformTelemetryMemoryMonitorStop(topic, message) {
+    // Handler for platform/telemetry/memory/monitor/stop/<req_id>
     const topicParts = topic.split('/');
-    if (topicParts.length !== 5 ||
-        !topic.startsWith('platform/telemetry/monitor/stop/')) {
+    if (topicParts.length !== 6 ||
+        !topic.startsWith('platform/telemetry/memory/monitor/stop/')) {
         console.log('Invalid topic: ' + topic);
         return;
     }
@@ -243,7 +242,7 @@ function displayMemoryUsage(pid, topic) {
 
 function startMonitoring(appId, pid) {
     // Start publishing memory usage every second.
-    topic = 'platform/telemetry/monitor/' + appId;
+    topic = 'platform/telemetry/memory/monitor/' + appId;
     console.log('Start publishing to ' + topic + ' every second');
 
     var appIndex = getAppIndex(appId);
@@ -280,10 +279,10 @@ client.on('message', (topic, message) => {
     console.log('Received a new message: topic: ' + topic + ' message: ' + message);
     if (topic.startsWith('platform/input/remote/')) {
         onPlatformInputRemote(topic, message);
-    } else if (topic.startsWith('platform/telemetry/monitor/start/')) {
-        onPlatformTelemetryMonitorStart(topic, message);
-    } else if (topic.startsWith('platform/telemetry/monitor/stop/')) {
-        onPlatformTelemetryMonitorStop(topic, message);
+    } else if (topic.startsWith('platform/telemetry/memory/monitor/start/')) {
+        onPlatformTelemetryMemoryMonitorStart(topic, message);
+    } else if (topic.startsWith('platform/telemetry/memory/monitor/stop/')) {
+        onPlatformTelemetryMemoryMonitorStop(topic, message);
     } else if (topic.match('apps/[^/]*/status/lifecycle')) {
         onAppsAppidStatusLifecycle(topic, message);
     } else {
