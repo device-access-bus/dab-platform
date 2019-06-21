@@ -222,10 +222,7 @@ function getAppPid(appId) {
 }
 
 function displayMemoryUsage(pid, topic) {
-    // Gets the memory usage of the given pid and publish the data
-    // to the given topic.
-    const cmd = "top -n1 -b | grep " + pid + " | awk '{ print $6 }'";
-    let top_process = spawn('sh', ['-c', cmd]);
+    let top_process = spawn('ps', ['-o', 'rss=', '-p', pid]);
 
     let memUsagekB = '';
     top_process.stdout.on('data', (chunk) => {
@@ -234,7 +231,7 @@ function displayMemoryUsage(pid, topic) {
 
     top_process.on('exit', () => {
         // Publish the memory usage.
-        payload = JSON.stringify({memory_kB: memUsagekB})
+        const payload = JSON.stringify({memory_kB: parseInt(memUsagekB, 10)})
         console.log('Sending memory usage: topic: ' + topic + ' message: ', payload)
         client.publish(topic, payload)
     })
