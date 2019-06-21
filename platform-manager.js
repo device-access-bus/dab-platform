@@ -27,7 +27,8 @@ client.on('connect', () => {
     // subscribe to the desired topics
     client.subscribe([
         'platform/input/remote/#',
-        'platform/telemetry/memory/monitor/#',
+        'platform/telemetry/memory/monitor/start/+',
+        'platform/telemetry/memory/monitor/stop/+',
         'apps/+/status/lifecycle'
     ]);
 });
@@ -247,6 +248,7 @@ function startMonitoring(appId, pid) {
         console.log('Internal error... missing entry for ' + appId);
         return
     }
+    displayMemoryUsage(pid, topic);
     const intervalId = setInterval(() => {
         displayMemoryUsage(pid, topic);
     }, 1000);
