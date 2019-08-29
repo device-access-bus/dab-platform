@@ -125,32 +125,32 @@ function onAppsAppidStatusLifecycle(topic, message) {
     }
 
     const appId = match[1];
-    const obj = JSON.parse(message.toString());
+    const obj = message.length > 0 ? JSON.parse(message.toString()) : {};
     const status = obj["status"];
     const pid = obj["pid"];
 
     var index;
     const numApps = appsPid.length;
     for (index = 0; index < numApps; index++) {
-        if (appsPid[index]["appId"] == appId) {
+        if (appsPid[index].appId == appId) {
             break;
         }
     }
     if (index < numApps) {
         if (status == "started") {
-            if (appsPid[index]["pid"] != pid) {
-                appsPid[index]["pid"] = pid;
+            if (appsPid[index].pid != pid) {
+                appsPid[index].pid = pid;
                 // TODO: stop existing monitoring if any.
-                appsPid[index]["intervalId"] = null;
+                appsPid[index].intervalId = null;
             }
         } else {
-            appsPid[index]["pid"] = null;
-            appsPid[index]["intervalId"] = null;
+            appsPid[index].pid = null;
+            appsPid[index].intervalId = null;
         }
     } else {
         appsPid.push({appId: appId, pid: pid, intervalId: null});
     }
-    console.log('Received status for ' + appId + ': pid = ' + appsPid[index]["pid"]);
+    console.log('Received status for ' + appId + ': pid = ' + appsPid[index].pid);
 }
 
 function onPlatformTelemetryMonitorStart(topic, message) {
@@ -164,13 +164,12 @@ function onPlatformTelemetryMonitorStart(topic, message) {
 
     const obj = JSON.parse(message.toString());
     const appId = obj["app_id"];
-    const pid = getAppPid(appId);
 
-    if (!pid) {
-        console.log('App ' + appId + ' is not currently running!');
+    if (!appId) {
+        console.log('App ' + appId + ' is not currently installed!');
         return;
     }
-    monitorTopic = startMonitoring(appId, pid);
+    monitorTopic = startMonitoring(appId);
 
     client.publish(
         '_response/' + topic,
@@ -205,7 +204,7 @@ function getAppIndex(appId) {
     var index;
     const numApps = appsPid.length;
     for (index = 0; index < numApps; index++) {
-        if (appsPid[index]["appId"] == appId) {
+        if (appsPid[index].appId === appId) {
             return index;
         }
     }
@@ -219,42 +218,63 @@ function getAppPid(appId) {
     if (index == null) {
       return null;
     }
-    return appsPid[index]["pid"];
+    return appsPid[index].pid;
 }
 
-function displayMemoryUsage(pid, topic) {
+function addIntervalId(appId, intervalId) {
+    let index = getAppIndex(appId);
+    if (index != null) {
+        appsPid[index].intervalId = intervalId;
+    } else {
+        let entry = {appId:appId, intervalId: intervalId};
+        appsPid.push(entry);
+    }
+}
+
+function displayMemoryUsage(appId, topic) {
     // Gets the memory usage of the given pid and publish the data
     // to the given topic.
+    const pid = getAppPid(appId);
     const cmd = "top -n1 -b | grep " + pid + " | awk '{ print $6 }'";
     let top_process = spawn('sh', ['-c', cmd]);
 
     let memUsagekB = '';
     top_process.stdout.on('data', (chunk) => {
         memUsagekB += chunk.toString();
+        memUsagekB = memUsagekB.replace('\n', '');
     });
 
     top_process.on('exit', () => {
+        let memoryUsagekBInt = 0;
         // Publish the memory usage.
-        payload = JSON.stringify({memory_kB: memUsagekB})
-        console.log('Sending memory usage: topic: ' + topic + ' message: ', payload)
+        try {
+            memoryUsagekBInt = parseInt(memUsagekB);
+        } catch (e) {
+            console.log('Exception parsing memUsagekB: ' + memUsagekB);
+        }
+        if (!memoryUsagekBInt) {
+            memoryUsagekBInt = 0;
+        }
+        let payload = JSON.stringify({memory_kB: memoryUsagekBInt});
+        console.log('Sending memory usage: topic: ' + topic + ' message: ', payload);
         client.publish(topic, payload)
     })
 }
 
-function startMonitoring(appId, pid) {
+function startMonitoring(appId) {
     // Start publishing memory usage every second.
     topic = 'platform/telemetry/monitor/' + appId;
     console.log('Start publishing to ' + topic + ' every second');
 
-    var appIndex = getAppIndex(appId);
-    if (appIndex == null) {
-        console.log('Internal error... missing entry for ' + appId);
-        return
-    }
+    // var appIndex = getAppIndex(appId);
+    // if (appIndex == null) {
+    //     console.log('Internal error... missing entry for ' + appId);
+    //     return
+    // }
     const intervalId = setInterval(() => {
-        displayMemoryUsage(pid, topic);
+        displayMemoryUsage(appId, topic);
     }, 1000);
-    appsPid[appIndex]["intervalId"] = intervalId;
+    addIntervalId(appId, intervalId);
 
     return topic
 }
@@ -268,7 +288,7 @@ function stopMonitoring(appId) {
         console.log('Internal error... missing entry for ' + appId);
         return
     }
-    const intervalId = appsPid[appIndex]["intervalId"];
+    const intervalId = appsPid[appIndex].intervalId;
     if (!intervalId) {
         console.log('Internal error... missing intervalId.');
         return
