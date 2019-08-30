@@ -13,6 +13,7 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
+"use strict";
 
 const mqtt = require('mqtt');
 const {spawn} = require('child_process');
@@ -118,7 +119,7 @@ function onPlatformInputRemote(topic, message) {
 function onAppsAppidStatusLifecycle(topic, message) {
     // Handler for apps/+/status/lifecycle
     // Gets the pid of the app and store it in appsPid
-    const match = topic.match('apps/([^/]*)/status/lifecycle')
+    const match = topic.match('apps/([^/]*)/status/lifecycle');
     if (!match) {
         console.log('Invalid topic: ' + topic);
         return;
@@ -129,16 +130,16 @@ function onAppsAppidStatusLifecycle(topic, message) {
     const status = obj["status"];
     const pid = obj["pid"];
 
-    var index;
+    let index;
     const numApps = appsPid.length;
     for (index = 0; index < numApps; index++) {
-        if (appsPid[index].appId == appId) {
+        if (appsPid[index].appId === appId) {
             break;
         }
     }
     if (index < numApps) {
-        if (status == "started") {
-            if (appsPid[index].pid != pid) {
+        if (status === "started") {
+            if (appsPid[index].pid !== pid) {
                 appsPid[index].pid = pid;
                 // TODO: stop existing monitoring if any.
                 appsPid[index].intervalId = null;
@@ -169,7 +170,7 @@ function onPlatformTelemetryMonitorStart(topic, message) {
         console.log('App ' + appId + ' is not currently installed!');
         return;
     }
-    monitorTopic = startMonitoring(appId);
+    const monitorTopic = startMonitoring(appId);
 
     client.publish(
         '_response/' + topic,
@@ -201,7 +202,7 @@ function onPlatformTelemetryMonitorStop(topic, message) {
 function getAppIndex(appId) {
     // Return index of the given app in the appsPid array, or null
     // if it does not exist yet.
-    var index;
+    let index;
     const numApps = appsPid.length;
     for (index = 0; index < numApps; index++) {
         if (appsPid[index].appId === appId) {
@@ -263,7 +264,7 @@ function displayMemoryUsage(appId, topic) {
 
 function startMonitoring(appId) {
     // Start publishing memory usage every second.
-    topic = 'platform/telemetry/monitor/' + appId;
+    const topic = 'platform/telemetry/monitor/' + appId;
     console.log('Start publishing to ' + topic + ' every second');
 
     // var appIndex = getAppIndex(appId);
@@ -283,7 +284,7 @@ function stopMonitoring(appId) {
     // Stop pusblishing memory usage.
     console.log('Stop monitoring for ' + appId);
 
-    var appIndex = getAppIndex(appId);
+    let appIndex = getAppIndex(appId);
     if (appIndex == null) {
         console.log('Internal error... missing entry for ' + appId);
         return
